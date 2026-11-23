@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "apiVersion": 1,
-  "id": "hovi-voice-skin",
-  "name": "Hovi",
-  "version": "0.1.4",
+  "id": "nabu-voice-skin",
+  "name": "Nabu",
+  "version": "0.1.0",
   "minAndroidSdk": 24,
   "minAppVersion": "2026.10.30",
-  "entryClass": "ca.ponderosa.hovi.HoviPlugin",
-  "description": "A voice skin with Hovi, a little hovering robot (or robot cat) whose face is drawn live on its screen: glowing lens eyes that blink and look around, a mouth that moves with the answer, and lights that sweep, pulse and spin as it listens, thinks and talks. It can dress up for holidays, picked by hand or by a Home Assistant entity.",
-  "author": "Ponderosa",
+  "entryClass": "nl.thuis.nabu.NabuPlugin",
+  "description": "A voice skin with Nabu, a small hovering robot drawn live in code: round glowing eyes that blink and look around, happy eyes while it answers, a mouth that moves with the answer, and soft ear lights that pulse as it listens and turn red when the wake word is muted. Light on the device: the robot's body is painted once and kept, so opening it costs next to nothing.",
+  "author": "Andromedanevel (based on Hovi by Ponderosa)",
   "license": "Apache-2.0",
   "capabilities": [
     "overlay",
@@ -20,35 +20,20 @@
   "voiceSkinThumbnail": "voice-skin.png",
   "settings": [
     {
-      "key": "holiday",
+      "key": "lightColor",
       "type": "select",
-      "title": "Holiday",
+      "title": "Light colour",
       "options": [
-        "Follow Home Assistant",
-        "None",
-        "New Year's",
-        "Valentine's",
-        "St Patrick's",
-        "Easter",
-        "Canada Day",
-        "Independence Day",
-        "Thanksgiving",
-        "Halloween",
-        "Remembrance",
-        "Christmas",
-        "Birthday"
+        "Mint",
+        "Cyan",
+        "Blue",
+        "Violet",
+        "Amber",
+        "Pink"
       ],
-      "default": "Follow Home Assistant",
+      "default": "Mint",
       "group": "Appearance",
-      "description": "The outfit and light colours. Follow Home Assistant reads the holiday entity below; any state that isn't one of these holidays shows the everyday robot."
-    },
-    {
-      "key": "holidayEntity",
-      "type": "entity",
-      "title": "Holiday entity",
-      "default": "",
-      "group": "Appearance",
-      "description": "The Home Assistant entity whose state names the holiday, used with Follow Home Assistant, such as an input_select you change yourself or a template sensor. Leave it empty for the everyday robot."
+      "description": "The colour of the eyes, ear lights, chest ring and hover ring, and of the short lines around the answer."
     },
     {
       "key": "frameRate",
@@ -62,7 +47,7 @@
       ],
       "default": "Auto",
       "group": "Appearance",
-      "description": "Auto starts at full speed and drops to 30, then 20 fps on a device that can't keep up, such as an Echo Show. Each kiosk decides for itself, so one synced setting suits a mixed fleet."
+      "description": "Auto starts at full speed and drops to 30, then 20 fps on a device that can't keep up. While the robot rests it never goes faster than 30 fps."
     },
     {
       "key": "darkness",
@@ -73,25 +58,13 @@
       "step": 5,
       "default": 0,
       "group": "Appearance",
-      "description": "How dark the robot's white shell is, in percent. Highlights stay bright; the lights, face and holiday props don't change."
-    },
-    {
-      "key": "base",
-      "type": "select",
-      "title": "Appearance",
-      "options": [
-        "Robot",
-        "Robot Cat"
-      ],
-      "default": "Robot",
-      "group": "Appearance",
-      "description": "Robot, or Robot Cat: the same robot with cat ears, a floating tail and a cat's face."
+      "description": "How dark the robot's white shell is, in percent. Highlights stay bright; the face and lights don't change."
     },
     {
       "key": "name",
       "type": "string",
       "title": "Name",
-      "default": "Hovi",
+      "default": "Nabu",
       "group": "Appearance",
       "description": "Your robot's name, shown over the conversation on a full screen. Leave it empty to show no name."
     },
@@ -112,13 +85,12 @@
       "type": "select",
       "title": "Accent font",
       "options": [
-        "Holiday",
         "Monospace",
         "Same as the answer"
       ],
-      "default": "Holiday",
+      "default": "Monospace",
       "group": "Appearance",
-      "description": "The font for the name, what was said and the actions, which take the holiday's light colour. Holiday gives each holiday its own font, and monospace on everyday days."
+      "description": "The font for the name, what was said and the actions, which take the light colour."
     }
   ],
   "commands": []
