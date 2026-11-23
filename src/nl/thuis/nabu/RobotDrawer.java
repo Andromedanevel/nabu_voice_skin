@@ -16,10 +16,10 @@ import java.util.Random;
 /**
  * Draws Nabu, a small hovering robot, entirely in code: no pictures are shipped.
  *
- * <p>Cheap by design. Everything that never moves (shell, arms, ears, face screen) is painted once into one bitmap
- * at the exact pixel size it is shown at, and kept in {@link Shell} so a new overlay reuses it. Each frame then
- * draws that bitmap once, a few soft glows from one small sprite, and the face (eyes, mouth) and lights as a
- * handful of simple shapes.
+ * <p>Cheap by design. Everything that never moves (shell, ears, face screen) is painted once into one bitmap at
+ * the exact pixel size it is shown at, and each arm into a small one of its own, all kept in {@link Shell} so a
+ * new overlay reuses them. Each frame then draws the body once, turns each arm about its shoulder, adds a few soft
+ * glows from one small sprite, and draws the face (eyes, mouth) and lights as a handful of simple shapes.
  *
  * <p>All drawing is in a design space of 300 by 370 units; the robot's own coordinates run from x 20 and y 26.
  */
@@ -48,6 +48,8 @@ final class RobotDrawer {
     private float last = -1;
     private float eyeR = 14, gazeX, gazeY, halo = 0.25f, ear = 0.55f, chest = 0.3f, mouth;
     private float gazeTX, gazeTY, nextGaze = 2;
+    /** How far each arm is lifted outward from hanging, in degrees: the robot's left (screen left) and right. */
+    private float armL, armR;
     private float blinkStart = -10, nextBlink = 3;
 
     RobotDrawer(int lightColor) {
@@ -92,7 +94,7 @@ final class RobotDrawer {
     void draw(Canvas c, int w, int h, float level, String phase, boolean muted, float darkness, long nowMs) {
         float s = scaleFor(w, h);
         if (s <= 0) return;
-        Bitmap shell = Shell.get(s, darkness);
+        Shell.Parts parts = Shell.get(s, darkness);
         float now = nowMs / 1000f;
         float dt = last < 0 ? 0 : Math.min(0.1f, now - last);
         last = now;
@@ -112,10 +114,11 @@ final class RobotDrawer {
         hoverRing(c, bob, muted);
         c.translate(0, bob);
         earGlows(c, muted);
+        arms(c, parts);
         c.restore();
 
         // The still parts, at their own pixel size: no scaling, so this is one plain copy
-        c.drawBitmap(shell, left, top + bob * s, bitmapPaint);
+        c.drawBitmap(parts.body, left, top + bob * s, bitmapPaint);
 
         c.save();
         c.translate(left, top + bob * s);
@@ -129,7 +132,7 @@ final class RobotDrawer {
     }
 
     private void ease(float now, float dt, float level, boolean listening, boolean thinking, boolean answering, boolean muted) {
-        float targetR = listening ? 16 : thinking ? 11 : 14;
+        float targetEyeR = listening ? 16 : thinking ? 11 : 14;
         float tx, ty;
         if (muted) {
             tx = 0;
@@ -156,13 +159,34 @@ final class RobotDrawer {
         float targetChest = answering ? 0.35f + 0.65f * level : listening ? 0.45f : 0.3f;
         float k = 1 - (float) Math.exp(-dt * 10);
         float fast = 1 - (float) Math.exp(-dt * 25);
-        eyeR += (targetR - eyeR) * k;
+        eyeR += (targetEyeR - eyeR) * k;
         gazeX += (tx - gazeX) * k;
         gazeY += (ty - gazeY) * k;
         halo += (targetHalo - halo) * k;
         ear += (Math.min(1, targetEar) - ear) * fast;
         chest += (Math.min(1, targetChest) - chest) * fast;
         mouth += (Math.min(1, level * GAIN) - mouth) * fast;
+        // Arms: a slow sway at rest, lifted to listen, moving with the voice while it talks, one raised in thought,
+        // drooping when muted
+        float targetL, targetR;
+        if (muted) {
+            targetL = targetR = -4;
+        } else if (answering) {
+            targetL = 8 + 22 * mouth * (0.6f + 0.4f * (float) Math.sin(now * 7));
+            targetR = 8 + 22 * mouth * (0.6f + 0.4f * (float) Math.sin(now * 7 + 2));
+        } else if (listening) {
+            targetL = 14 + 2 * (float) Math.sin(now * 2);
+            targetR = 14 + 2 * (float) Math.sin(now * 2 + 1.5f);
+        } else if (thinking) {
+            targetL = 2;
+            targetR = 22 + 3 * (float) Math.sin(now * 6);
+        } else {
+            targetL = 3 * (float) Math.sin(now * 1.6f);
+            targetR = 3 * (float) Math.sin(now * 1.6f + 2.2f);
+        }
+        float arm = answering ? fast : 1 - (float) Math.exp(-dt * 6);
+        armL += (targetL - armL) * arm;
+        armR += (targetR - armR) * arm;
         if (now > nextBlink) {
             blinkStart = now;
             nextBlink = now + 2.5f + random.nextFloat() * 4;
@@ -184,6 +208,20 @@ final class RobotDrawer {
         stroke.setColor(withAlpha(muted ? lightDim : light, 0.85f));
         rect.set(124, 360, 216, 376);
         c.drawOval(rect, stroke);
+    }
+
+    /** Each arm turned about its shoulder; drawn before the body, so the shoulder joint covers where it turns. */
+    private void arms(Canvas c, Shell.Parts parts) {
+        c.save();
+        c.rotate(armL, Shell.SHOULDER_L[0], Shell.SHOULDER_L[1]);
+        rect.set(Shell.ARM_L[0], Shell.ARM_L[1], Shell.ARM_L[2], Shell.ARM_L[3]);
+        c.drawBitmap(parts.armL, null, rect, bitmapPaint);
+        c.restore();
+        c.save();
+        c.rotate(-armR, Shell.SHOULDER_R[0], Shell.SHOULDER_R[1]);
+        rect.set(Shell.ARM_R[0], Shell.ARM_R[1], Shell.ARM_R[2], Shell.ARM_R[3]);
+        c.drawBitmap(parts.armR, null, rect, bitmapPaint);
+        c.restore();
     }
 
     private void earGlows(Canvas c, boolean muted) {
@@ -310,25 +348,82 @@ final class RobotDrawer {
      * nothing. Two sizes are kept: the full screen robot and the docked one.
      */
     static final class Shell {
+        /** Where each arm's picture sits in the design space when it hangs: left, top, right, bottom. */
+        static final float[] ARM_L = {70, 224, 120, 310}, ARM_R = {220, 224, 270, 310};
+        /** The point each arm turns about: the middle of its shoulder joint. */
+        static final float[] SHOULDER_L = {111, 230}, SHOULDER_R = {229, 230};
+
+        /** The body, and each arm on its own. */
+        static final class Parts {
+            final Bitmap body, armL, armR;
+
+            Parts(Bitmap body, Bitmap armL, Bitmap armR) {
+                this.body = body;
+                this.armL = armL;
+                this.armR = armR;
+            }
+        }
+
         private static float[] scales = new float[2];
         private static float[] darks = new float[2];
-        private static Bitmap[] bitmaps = new Bitmap[2];
+        private static Parts[] made = new Parts[2];
         private static int next;
 
         private Shell() {}
 
-        static synchronized Bitmap get(float s, float darkness) {
+        static synchronized Parts get(float s, float darkness) {
             float key = Math.round(s * 1000) / 1000f;
-            for (int i = 0; i < bitmaps.length; i++) {
-                if (bitmaps[i] != null && scales[i] == key && darks[i] == darkness) return bitmaps[i];
+            for (int i = 0; i < made.length; i++) {
+                if (made[i] != null && scales[i] == key && darks[i] == darkness) return made[i];
             }
-            Bitmap made = paint(key, darkness);
+            Paint filter = new Paint(Paint.ANTI_ALIAS_FLAG);
+            filter.setColorFilter(darken(darkness));
+            Parts parts = new Parts(paint(key, darkness), arm(key, -1, filter), arm(key, 1, filter));
             int slot = next;
-            next = (next + 1) % bitmaps.length;
+            next = (next + 1) % made.length;
             scales[slot] = key;
             darks[slot] = darkness;
-            bitmaps[slot] = made;
-            return made;
+            made[slot] = parts;
+            return parts;
+        }
+
+        /** The Darkness setting as a filter: highlights stay bright while the rest drops; null at 0. */
+        private static ColorMatrixColorFilter darken(float darkness) {
+            if (darkness <= 0) return null;
+            float k = 1 - 0.25f * darkness, off = -0.18f * darkness * 255;
+            return new ColorMatrixColorFilter(new float[] {
+                k, 0, 0, 0, off,
+                0, k, 0, 0, off,
+                0, 0, k, 0, off,
+                0, 0, 0, 1, 0,
+            });
+        }
+
+        /** One arm and its hand, hanging, in a small picture of its own: side -1 is the left, 1 the right. */
+        private static Bitmap arm(float s, int side, Paint filter) {
+            float[] box = side < 0 ? ARM_L : ARM_R;
+            int w = Math.max(1, (int) Math.ceil((box[2] - box[0]) * s));
+            int h = Math.max(1, (int) Math.ceil((box[3] - box[1]) * s));
+            Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(bitmap);
+            c.scale(w / (box[2] - box[0]), h / (box[3] - box[1]));
+            c.translate(-box[0], -box[1]);
+            RectF r = new RectF();
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            p.setColorFilter(filter.getColorFilter());
+            float ax = 170 + side * 74;
+            c.save();
+            c.rotate(-side * 16, ax, 262);
+            r.set(ax - 14, 232, ax + 14, 292);
+            p.setShader(shellShader(ax, 262, 14, 30));
+            c.drawOval(r, p);
+            c.restore();
+            Paint joint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            float hx = 170 + side * 83;
+            r.set(hx - 8, 284, hx + 8, 304);
+            joint.setShader(jointShader(hx, 294, 10));
+            c.drawOval(r, joint);
+            return bitmap;
         }
 
         /** Paint ahead of time, off the main thread, so the first wake doesn't pay for it. */
@@ -338,8 +433,8 @@ final class RobotDrawer {
         }
 
         static synchronized void clear() {
-            for (int i = 0; i < bitmaps.length; i++) {
-                bitmaps[i] = null;
+            for (int i = 0; i < made.length; i++) {
+                made[i] = null;
                 scales[i] = 0;
             }
         }
@@ -352,33 +447,13 @@ final class RobotDrawer {
             c.scale(s, s);
             c.translate(-OX, -OY);
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            if (darkness > 0) {
-                // Darker shell: highlights stay bright while the rest drops
-                float k = 1 - 0.25f * darkness, off = -0.18f * darkness * 255;
-                p.setColorFilter(new ColorMatrixColorFilter(new float[] {
-                    k, 0, 0, 0, off,
-                    0, k, 0, 0, off,
-                    0, 0, k, 0, off,
-                    0, 0, 0, 1, 0,
-                }));
-            }
+            p.setColorFilter(darken(darkness));
             Paint joint = new Paint(Paint.ANTI_ALIAS_FLAG);
             RectF r = new RectF();
             Path path = new Path();
 
-            // Arms, hands and shoulders
+            // Shoulder joints; the arms are drawn under them each frame, so they can move
             for (int side = -1; side <= 1; side += 2) {
-                float ax = 170 + side * 74;
-                c.save();
-                c.rotate(-side * 16, ax, 262);
-                r.set(ax - 14, 232, ax + 14, 292);
-                p.setShader(shellShader(ax, 262, 14, 30));
-                c.drawOval(r, p);
-                c.restore();
-                float hx = 170 + side * 83;
-                r.set(hx - 8, 284, hx + 8, 304);
-                joint.setShader(jointShader(hx, 294, 10));
-                c.drawOval(r, joint);
                 float jx = 170 + side * 59;
                 joint.setShader(jointShader(jx, 230, 11));
                 c.drawCircle(jx, 230, 11, joint);
