@@ -3,7 +3,7 @@
   "apiVersion": 1,
   "id": "nabu-voice-skin",
   "name": "Nabu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAndroidSdk": 24,
   "minAppVersion": "2026.10.30",
   "entryClass": "nl.thuis.nabu.NabuPlugin",
