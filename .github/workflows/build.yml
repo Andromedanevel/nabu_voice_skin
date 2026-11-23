@@ -20,5 +20,5 @@ jobs:
         run: python3 tools/build.py --android-platform 35
       - uses: actions/upload-artifact@v4
         with:
-          name: hovi
-          path: dist/hovi-voice-skin-*.zip
+          name: nabu
+          path: dist/nabu-voice-skin-*.zip
