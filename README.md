@@ -6,17 +6,17 @@ A voice skin for [Kiosk Satellite](https://github.com/jxlarrea/kiosk-satellite).
 
 Nabu is drawn entirely in code; no pictures are shipped. It floats above a glowing hover ring and bobs gently, and its face screen shows round glowing eyes and a small mouth.
 
-- **Resting:** it bobs, blinks and looks around, with a small smile.
-- **Listening:** its eyes grow a little, a soft halo lights round them and its ear lights pulse with your voice.
-- **Thinking:** it glances up and aside, three dots light up in turn and its chest ring chases round.
-- **Answering:** happy arc eyes, and its mouth, chest light and ear lights move with the answer.
-- **Muted:** with the wake word muted, its ear lights glow red and its eyes close to low slits.
+- **Resting:** it bobs, blinks and looks around with a small smile, its arms swaying gently.
+- **Listening:** it lifts its arms a little, its eyes grow, a soft halo lights round them and its ear lights pulse with your voice.
+- **Thinking:** it glances up and aside with one arm raised, three dots light up in turn and its chest ring chases round.
+- **Answering:** happy arc eyes, and its arms, mouth, chest light and ear lights move with the answer.
+- **Muted:** with the wake word muted, its ear lights glow red, its eyes close to low slits and its arms droop.
 
 ## Light on the device
 
 Nabu was made to keep wake-ups quick on modest tablets:
 
-- The parts that never move (shell, arms, ears, face screen) are painted **once** into one picture at the exact size they are shown, ready from the moment the plugin starts, and kept between turns. Opening the overlay again costs next to nothing.
+- The parts that never move (shell, ears, face screen) are painted **once** into one picture, and each arm into a small one, at the exact size they are shown, ready from the moment the plugin starts, and kept between turns. Opening the overlay again costs next to nothing.
 - Each frame draws that one picture, a few soft glows from one small sprite, and the face and lights as a handful of simple shapes.
 - While Nabu rests it never draws faster than 30 frames a second. Nothing is drawn at all while the overlay is closed.
 
