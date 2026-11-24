@@ -140,7 +140,7 @@
       "key": "birthday1",
       "type": "entity",
       "title": "Birthday helper 1",
-      "default": "input_datetime.verjaardag_eveline",
+      "default": "",
       "group": "Holidays",
       "description": "A date helper named \"Verjaardag <name>\". On that day (month and day; the year doesn't count) Nabu has a party hat and cake and cheers \"Hoera, <name>!\". Leave it empty if not needed."
     },
@@ -148,7 +148,7 @@
       "key": "birthday2",
       "type": "entity",
       "title": "Birthday helper 2",
-      "default": "input_datetime.verjaardag_mathijs",
+      "default": "",
       "group": "Holidays",
       "description": "A date helper named \"Verjaardag <name>\". On that day (month and day; the year doesn't count) Nabu has a party hat and cake and cheers \"Hoera, <name>!\". Leave it empty if not needed."
     },
@@ -156,7 +156,7 @@
       "key": "birthday3",
       "type": "entity",
       "title": "Birthday helper 3",
-      "default": "input_datetime.verjaardag_iris",
+      "default": "",
       "group": "Holidays",
       "description": "A date helper named \"Verjaardag <name>\". On that day (month and day; the year doesn't count) Nabu has a party hat and cake and cheers \"Hoera, <name>!\". Leave it empty if not needed."
     }

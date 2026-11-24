@@ -71,7 +71,7 @@ final class SkinController {
     volatile String robotName = Brand.NAME;
     /** Today's holiday, or empty for an everyday robot. */
     volatile String holiday = Holidays.NONE;
-    /** Whose birthday it is today, such as "Iris" or "Iris en Mathijs"; empty for nobody. */
+    /** Whose birthday it is today, such as "Anna" or "Anna en Ben"; empty for nobody. */
     volatile String birthdays = "";
     /** The Holiday setting: Automatic, None, or one holiday to show every day. */
     private String holidaySetting = AUTOMATIC;
@@ -254,7 +254,7 @@ final class SkinController {
         refreshHoliday();
     }
 
-    /** "Verjaardag Iris" gives Iris; without a name, input_datetime.verjaardag_iris does too. */
+    /** "Verjaardag Anna" gives Anna; without a name, input_datetime.verjaardag_anna does too. */
     private static String nameOf(String id, Map<?, ?> attributes) {
         String name = attributes != null && attributes.get("friendly_name") instanceof String ? ((String) attributes.get("friendly_name")).trim() : "";
         if (name.isEmpty()) {

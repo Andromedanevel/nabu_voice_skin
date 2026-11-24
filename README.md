@@ -60,7 +60,7 @@ Nabu follows **Overlay mode** in Kiosk Satellite's **Voice Satellite > Appearanc
 | Darkness | 0 to 100%: how dark the white shell is. Highlights stay bright. |
 | Holiday | **Automatic** (the default), **None**, or one holiday to show every day, handy to preview them. |
 | Public-holiday calendar | The calendar entity for the official Dutch holidays; **calendar.feestdagen_nederland** unless you change it. |
-| Birthday helper 1–3 | Date helpers for birthdays; **input_datetime.verjaardag_eveline**, **_mathijs** and **_iris** unless you change them. |
+| Birthday helper 1–3 | Date helpers for birthdays, such as **input_datetime.verjaardag_anna**. Empty unless you pick one. |
 | Name | The name over the conversation on a full screen, **Nabu** unless you change it. Leave it empty for none. |
 | Answer font | **Kiosk Satellite** (its own font) or **Atkinson Hyperlegible**, designed to read easily. |
 | Accent font | **Monospace** or **Same as the answer**, for the name, what you said and the actions. |
