@@ -33,6 +33,7 @@ Nabu follows **Overlay mode** in Kiosk Satellite's **Voice Satellite > Appearanc
 | --- | --- |
 | Light colour | **Mint** (the default), **Cyan**, **Blue**, **Violet**, **Amber** or **Pink**: the eyes, ear lights, chest ring and hover ring, and the short lines around the answer. |
 | Frame rate | **Auto** (the default) starts at full speed and drops to 30, then 20 fps on a device that can't keep up. **Full**, **30 fps** and **20 fps** fix the rate. Resting is never faster than 30 fps. |
+| Arms | **Together** (the default): both arms move as one, mirrored. **Each its own**: a little out of step, with one arm raised while thinking. |
 | Darkness | 0 to 100%: how dark the white shell is. Highlights stay bright. |
 | Name | The name over the conversation on a full screen, **Nabu** unless you change it. Leave it empty for none. |
 | Answer font | **Kiosk Satellite** (its own font) or **Atkinson Hyperlegible**, designed to read easily. |

@@ -50,6 +50,8 @@ final class RobotDrawer {
     private float gazeTX, gazeTY, nextGaze = 2;
     /** How far each arm is lifted outward from hanging, in degrees: the robot's left (screen left) and right. */
     private float armL, armR;
+    /** The Arms setting: true moves both arms as one, mirrored. */
+    private boolean armsTogether = true;
     private float blinkStart = -10, nextBlink = 3;
 
     RobotDrawer(int lightColor) {
@@ -58,6 +60,10 @@ final class RobotDrawer {
         stroke.setStrokeJoin(Paint.Join.ROUND);
         setLight(lightColor);
         redGlow = glowSprite(MUTED);
+    }
+
+    void setArmsTogether(boolean together) {
+        armsTogether = together;
     }
 
     /** The colour of the eyes and lights. */
@@ -169,20 +175,26 @@ final class RobotDrawer {
         // Arms: a slow sway at rest, lifted to listen, moving with the voice while it talks, one raised in thought,
         // drooping when muted
         float targetL, targetR;
+        // With arms together both follow the left arm's wave; otherwise the right one runs a little behind
+        float lag = armsTogether ? 0 : 1;
         if (muted) {
             targetL = targetR = -4;
         } else if (answering) {
             targetL = 8 + 22 * mouth * (0.6f + 0.4f * (float) Math.sin(now * 7));
-            targetR = 8 + 22 * mouth * (0.6f + 0.4f * (float) Math.sin(now * 7 + 2));
+            targetR = 8 + 22 * mouth * (0.6f + 0.4f * (float) Math.sin(now * 7 + 2 * lag));
         } else if (listening) {
             targetL = 14 + 2 * (float) Math.sin(now * 2);
-            targetR = 14 + 2 * (float) Math.sin(now * 2 + 1.5f);
+            targetR = 14 + 2 * (float) Math.sin(now * 2 + 1.5f * lag);
         } else if (thinking) {
-            targetL = 2;
-            targetR = 22 + 3 * (float) Math.sin(now * 6);
+            if (armsTogether) {
+                targetL = targetR = 10 + 3 * (float) Math.sin(now * 6);
+            } else {
+                targetL = 2;
+                targetR = 22 + 3 * (float) Math.sin(now * 6);
+            }
         } else {
             targetL = 3 * (float) Math.sin(now * 1.6f);
-            targetR = 3 * (float) Math.sin(now * 1.6f + 2.2f);
+            targetR = 3 * (float) Math.sin(now * 1.6f + 2.2f * lag);
         }
         float arm = answering ? fast : 1 - (float) Math.exp(-dt * 6);
         armL += (targetL - armL) * arm;
