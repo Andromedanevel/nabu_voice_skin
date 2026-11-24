@@ -81,6 +81,8 @@ final class SkinController {
     volatile float darkness;
     /** The Light colour setting. */
     volatile int lightColor = Brand.light(null);
+    /** The Arms setting: true for both arms moving as one. */
+    volatile boolean armsTogether = true;
     /** The showing view. Touched on the main thread only. */
     private SkinView view;
 
@@ -137,6 +139,7 @@ final class SkinController {
         Object dark = settings.get("darkness");
         darkness = dark instanceof Number ? Math.max(0, Math.min(1, ((Number) dark).floatValue() / 100)) : 0;
         lightColor = Brand.light(settings.get("lightColor"));
+        armsTogether = !"Each its own".equals(settings.get("arms"));
         robotName = settings.get("name") instanceof String ? ((String) settings.get("name")).trim() : Brand.NAME;
         hyperlegible = "Atkinson Hyperlegible".equals(settings.get("answerFont"));
         accentFont = settings.get("accentFont") instanceof String ? (String) settings.get("accentFont") : "Monospace";
@@ -543,6 +546,7 @@ final class SkinController {
             @Override protected void onDraw(Canvas canvas) {
                 if (drawer == null) drawer = new RobotDrawer(lightColor);
                 drawer.setLight(lightColor);
+                drawer.setArmsTogether(armsTogether);
                 String phase = phase();
                 // With Reactive activity bar off nothing follows the voice. KS sends 0 then too.
                 drawer.draw(canvas, getWidth(), getHeight(), reactive ? level : 0, phase, muted, darkness, SystemClock.uptimeMillis());
