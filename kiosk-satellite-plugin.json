@@ -3,7 +3,7 @@
   "apiVersion": 1,
   "id": "nabu-voice-skin",
   "name": "Nabu",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "minAndroidSdk": 24,
   "minAppVersion": "2026.10.30",
   "entryClass": "nl.thuis.nabu.NabuPlugin",
@@ -34,6 +34,18 @@
       "default": "Mint",
       "group": "Appearance",
       "description": "The colour of the eyes, ear lights, chest ring and hover ring, and of the short lines around the answer."
+    },
+    {
+      "key": "arms",
+      "type": "select",
+      "title": "Arms",
+      "options": [
+        "Together",
+        "Each its own"
+      ],
+      "default": "Together",
+      "group": "Appearance",
+      "description": "Together: both arms move as one, mirrored. Each its own: they move a little out of step, and one arm goes up while thinking."
     },
     {
       "key": "frameRate",
@@ -91,6 +103,62 @@
       "default": "Monospace",
       "group": "Appearance",
       "description": "The font for the name, what was said and the actions, which take the light colour."
+    },
+    {
+      "key": "holiday",
+      "type": "select",
+      "title": "Holiday",
+      "options": [
+        "Automatic",
+        "None",
+        "Sinterklaas",
+        "Kerst",
+        "Oudejaarsavond",
+        "Nieuwjaarsdag",
+        "Valentijnsdag",
+        "Pasen",
+        "Koningsdag",
+        "Bevrijdingsdag",
+        "Hemelvaart en Pinksteren",
+        "Halloween",
+        "Sint-Maarten",
+        "Verjaardag"
+      ],
+      "default": "Automatic",
+      "group": "Holidays",
+      "description": "Automatic dresses Nabu up by the date: a birthday first, then your public-holiday calendar, then the plugin's own dates (Sinterklaas, Kerst 6–26 Dec, Oudejaarsavond, Valentijnsdag, Halloween, Sint-Maarten). Pick one holiday to see it now; None for the everyday robot."
+    },
+    {
+      "key": "holidayCalendar",
+      "type": "entity",
+      "title": "Public-holiday calendar",
+      "default": "calendar.feestdagen_nederland",
+      "group": "Holidays",
+      "description": "A calendar whose events name the Dutch public holidays (Kerst, Nieuwjaarsdag, Pasen, Koningsdag, Bevrijdingsdag, Hemelvaart, Pinksteren). Leave it empty to use the plugin's own dates for these too."
+    },
+    {
+      "key": "birthday1",
+      "type": "entity",
+      "title": "Birthday helper 1",
+      "default": "",
+      "group": "Holidays",
+      "description": "A date helper named \"Verjaardag <name>\". On that day (month and day; the year doesn't count) Nabu has a party hat and cake and cheers \"Hoera, <name>!\". Leave it empty if not needed."
+    },
+    {
+      "key": "birthday2",
+      "type": "entity",
+      "title": "Birthday helper 2",
+      "default": "",
+      "group": "Holidays",
+      "description": "A date helper named \"Verjaardag <name>\". On that day (month and day; the year doesn't count) Nabu has a party hat and cake and cheers \"Hoera, <name>!\". Leave it empty if not needed."
+    },
+    {
+      "key": "birthday3",
+      "type": "entity",
+      "title": "Birthday helper 3",
+      "default": "",
+      "group": "Holidays",
+      "description": "A date helper named \"Verjaardag <name>\". On that day (month and day; the year doesn't count) Nabu has a party hat and cake and cheers \"Hoera, <name>!\". Leave it empty if not needed."
     }
   ],
   "commands": []
