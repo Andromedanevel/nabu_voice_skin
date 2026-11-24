@@ -19,9 +19,14 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import me.jxl.kiosk.plugins.KsTheme;
 import me.jxl.kiosk.plugins.OverlayFactory;
 import me.jxl.kiosk.plugins.OverlaySpec;
@@ -64,6 +69,23 @@ final class SkinController {
     volatile float panelShare;
     /** The Name setting, over the turn on a full screen; empty for none. */
     volatile String robotName = Brand.NAME;
+    /** Today's holiday, or empty for an everyday robot. */
+    volatile String holiday = Holidays.NONE;
+    /** Whose birthday it is today, such as "Iris" or "Iris en Mathijs"; empty for nobody. */
+    volatile String birthdays = "";
+    /** The Holiday setting: Automatic, None, or one holiday to show every day. */
+    private String holidaySetting = AUTOMATIC;
+    private String calendarEntity = "";
+    /** The holiday the public-holiday calendar names right now, or empty. */
+    private String calendarHoliday = Holidays.NONE;
+    private final String[] birthdayEntities = new String[BIRTHDAYS];
+    /** Each birthday helper's month and day ("MM-DD") and name. */
+    private final String[] birthdayDays = new String[BIRTHDAYS];
+    private final String[] birthdayNames = new String[BIRTHDAYS];
+    /** The Home Assistant entities being watched. */
+    private final Set<String> watched = new HashSet<>();
+    static final String AUTOMATIC = "Automatic";
+    static final int BIRTHDAYS = 3;
     /** The Answer font setting: true for Atkinson Hyperlegible, false for Kiosk Satellite's own. */
     volatile boolean hyperlegible;
     /** The Accent font setting: "Monospace" or "Same as the answer". */
@@ -81,6 +103,8 @@ final class SkinController {
     volatile float darkness;
     /** The Light colour setting. */
     volatile int lightColor = Brand.light(null);
+    /** The Arms setting: true for both arms moving as one. */
+    volatile boolean armsTogether = true;
     /** The showing view. Touched on the main thread only. */
     private SkinView view;
 
@@ -137,10 +161,29 @@ final class SkinController {
         Object dark = settings.get("darkness");
         darkness = dark instanceof Number ? Math.max(0, Math.min(1, ((Number) dark).floatValue() / 100)) : 0;
         lightColor = Brand.light(settings.get("lightColor"));
+        armsTogether = !"Each its own".equals(settings.get("arms"));
         robotName = settings.get("name") instanceof String ? ((String) settings.get("name")).trim() : Brand.NAME;
         hyperlegible = "Atkinson Hyperlegible".equals(settings.get("answerFont"));
         accentFont = settings.get("accentFont") instanceof String ? (String) settings.get("accentFont") : "Monospace";
-        if (host != null) prepare();
+        Object choice = settings.get("holiday");
+        holidaySetting = "None".equals(choice) || Holidays.known(choice) ? (String) choice : AUTOMATIC;
+        calendarEntity = entity(settings.get("holidayCalendar"));
+        Set<String> wanted = new HashSet<>();
+        if (!calendarEntity.isEmpty()) wanted.add(calendarEntity);
+        for (int i = 0; i < BIRTHDAYS; i++) {
+            String id = entity(settings.get("birthday" + (i + 1)));
+            if (!id.equals(birthdayEntities[i])) {
+                birthdayDays[i] = "";
+                birthdayNames[i] = "";
+            }
+            birthdayEntities[i] = id;
+            if (!id.isEmpty()) wanted.add(id);
+        }
+        if (host != null) {
+            watch(wanted);
+            refreshHoliday();
+            prepare();
+        }
         restyleLater();
     }
 
@@ -150,10 +193,103 @@ final class SkinController {
      */
     private void prepare() {
         DisplayMetrics screen = Resources.getSystem().getDisplayMetrics();
-        int w = screen.widthPixels, h = screen.heightPixels;
-        RobotDrawer.Shell.prepare(RobotDrawer.scaleFor(fullSize(w, h), fullSize(w, h)), darkness);
+        int full = fullSize(screen.widthPixels, screen.heightPixels);
         int docked = Math.round(DOCK_SIZE * screen.density);
-        RobotDrawer.Shell.prepare(RobotDrawer.scaleFor(docked, docked), darkness);
+        String today = holiday;
+        boolean decorated = !today.isEmpty();
+        for (int size : new int[] {full, docked}) {
+            float s = RobotDrawer.scaleFor(size, size, decorated);
+            RobotDrawer.Shell.prepare(s, darkness);
+            if (decorated) Decor.Cache.prepare(today, s);
+        }
+    }
+
+    private static String entity(Object value) {
+        return value instanceof String ? ((String) value).trim() : "";
+    }
+
+    /** Follow these Home Assistant entities, and stop following the rest. */
+    private void watch(Set<String> wanted) {
+        int current = generation;
+        for (String old : new ArrayList<>(watched)) {
+            if (wanted.contains(old)) continue;
+            watched.remove(old);
+            try {
+                host.unsubscribe("ha.entity." + old);
+            } catch (IllegalArgumentException | UnsupportedOperationException ignored) {
+                // Nothing to stop
+            }
+        }
+        for (String id : wanted) {
+            if (watched.contains(id)) continue;
+            try {
+                host.subscribe("ha.entity." + id);
+                watched.add(id);
+                host.executeCommand("getHaEntityState", Collections.<String, Object>singletonMap("entityId", id), (ok, data, error) -> {
+                    synchronized (SkinController.this) {
+                        if (current == generation && ok && data instanceof Map && watched.contains(id)) entityChanged(id, (Map<?, ?>) data);
+                    }
+                });
+            } catch (IllegalArgumentException | UnsupportedOperationException unavailable) {
+                host.status("Can't read " + id + " from Home Assistant; holidays use the plugin's own dates.", true);
+            }
+        }
+    }
+
+    /** A watched entity's state, whether it arrives as {state, attributes} or {newState: {...}}. */
+    private void entityChanged(String id, Map<?, ?> data) {
+        Map<?, ?> now = data;
+        for (String key : new String[] {"newState", "new_state"}) if (data.get(key) instanceof Map) now = (Map<?, ?>) data.get(key);
+        String state = now.get("state") instanceof String ? (String) now.get("state") : "";
+        Map<?, ?> attributes = now.get("attributes") instanceof Map ? (Map<?, ?>) now.get("attributes") : null;
+        if (id.equals(calendarEntity)) {
+            calendarHoliday = "on".equals(state) && attributes != null ? Holidays.fromCalendar(attributes.get("message")) : Holidays.NONE;
+        }
+        for (int i = 0; i < BIRTHDAYS; i++) {
+            if (!id.equals(birthdayEntities[i])) continue;
+            // A date helper reads "2015-03-21": only the month and day count
+            birthdayDays[i] = state.length() >= 10 && state.charAt(4) == '-' ? state.substring(5, 10) : "";
+            birthdayNames[i] = nameOf(id, attributes);
+        }
+        refreshHoliday();
+    }
+
+    /** "Verjaardag Iris" gives Iris; without a name, input_datetime.verjaardag_iris does too. */
+    private static String nameOf(String id, Map<?, ?> attributes) {
+        String name = attributes != null && attributes.get("friendly_name") instanceof String ? ((String) attributes.get("friendly_name")).trim() : "";
+        if (name.isEmpty()) {
+            name = id.substring(id.indexOf('.') + 1).replace('_', ' ').trim();
+            if (!name.isEmpty()) name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        }
+        if (name.toLowerCase(Locale.ROOT).startsWith("verjaardag ")) name = name.substring(11).trim();
+        if (!name.isEmpty()) name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        return name;
+    }
+
+    /**
+     * Today's holiday: the Holiday setting if one is picked; otherwise a birthday, then what the public-holiday
+     * calendar says, then the plugin's own dates.
+     */
+    private void refreshHoliday() {
+        Calendar today = Calendar.getInstance();
+        String day = String.format(Locale.ROOT, "%02d-%02d", today.get(Calendar.MONTH) + 1, today.get(Calendar.DAY_OF_MONTH));
+        StringBuilder names = new StringBuilder();
+        for (int i = 0; i < BIRTHDAYS; i++) {
+            if (!day.equals(birthdayDays[i]) || birthdayNames[i] == null || birthdayNames[i].isEmpty()) continue;
+            if (names.length() > 0) names.append(" en ");
+            names.append(birthdayNames[i]);
+        }
+        birthdays = names.toString();
+        String pick;
+        if ("None".equals(holidaySetting)) pick = Holidays.NONE;
+        else if (!AUTOMATIC.equals(holidaySetting)) pick = holidaySetting;
+        else if (names.length() > 0) pick = Holidays.VERJAARDAG;
+        else if (!calendarHoliday.isEmpty()) pick = calendarHoliday;
+        else pick = Holidays.byDate(today);
+        if (pick.equals(holiday)) return;
+        holiday = pick;
+        if (host != null) prepare();
+        restyleLater();
     }
 
     /** The full screen robot's square size in pixels: beside the words on a wide screen, above them on a tall one. */
@@ -186,6 +322,10 @@ final class SkinController {
             return;
         } else if ("ks.wakeword.state".equals(event)) {
             muted = Boolean.TRUE.equals(payload.get("muted"));
+            return;
+        } else if (event.startsWith("ks.ha.entity.")) {
+            String id = event.substring("ks.ha.entity.".length());
+            if (watched.contains(id)) entityChanged(id, payload);
             return;
         } else {
             return;
@@ -254,6 +394,8 @@ final class SkinController {
 
     /** Shows the skin while it is picked and the overlay is up, in the look that matches it. */
     private void update() {
+        // A new day may have started since the last turn
+        if (drawn == null) refreshHoliday();
         String want = selected && ("full".equals(overlay) || "docked".equals(overlay)) ? overlay : null;
         if (want == null ? drawn == null : want.equals(drawn)) return;
         drawn = want;
@@ -295,6 +437,12 @@ final class SkinController {
         reactive = true;
         autoDelay = 0;
         RobotDrawer.Shell.clear();
+        Decor.Cache.clear();
+        watched.clear();
+        holiday = Holidays.NONE;
+        birthdays = "";
+        calendarHoliday = Holidays.NONE;
+        for (int i = 0; i < BIRTHDAYS; i++) birthdayEntities[i] = birthdayDays[i] = birthdayNames[i] = "";
     }
 
     /** Auto frame rate: one step slower when the frames that come back are well behind what was asked for. */
@@ -479,7 +627,9 @@ final class SkinController {
         void refresh() {
             said.setText(command.isEmpty() ? "" : "> " + command);
             said.setVisibility(command.isEmpty() ? GONE : VISIBLE);
-            String called = robotName;
+            // On a birthday the name line cheers instead
+            String party = birthdays;
+            String called = Holidays.VERJAARDAG.equals(holiday) && !party.isEmpty() ? "Hoera, " + party + "!" : robotName;
             name.setText(called);
             name.setVisibility(docked || called.isEmpty() || (command.isEmpty() && answer.isEmpty() && tools.isEmpty()) ? GONE : VISIBLE);
             if (docked) {
@@ -543,9 +693,10 @@ final class SkinController {
             @Override protected void onDraw(Canvas canvas) {
                 if (drawer == null) drawer = new RobotDrawer(lightColor);
                 drawer.setLight(lightColor);
+                drawer.setArmsTogether(armsTogether);
                 String phase = phase();
                 // With Reactive activity bar off nothing follows the voice. KS sends 0 then too.
-                drawer.draw(canvas, getWidth(), getHeight(), reactive ? level : 0, phase, muted, darkness, SystemClock.uptimeMillis());
+                drawer.draw(canvas, getWidth(), getHeight(), reactive ? level : 0, phase, muted, darkness, holiday, SystemClock.uptimeMillis());
                 if (!attached) return;
                 int delay = fixedDelay >= 0 ? fixedDelay : autoDelay;
                 // Auto only judges the device on the frames it asked to come fast
